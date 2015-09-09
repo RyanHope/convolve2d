@@ -11,27 +11,30 @@ class convolve2d_OCL(object):
 
     def __init__(self):
         self.ctx = None
-        self.fmt = cl.ImageFormat(cl.channel_order.RGBA, cl.channel_type.FLOAT)
+        self.fmt = cl.ImageFormat(cl.channel_order.RGBA, cl.channel_type.UNSIGNED_INT8)
     def __call__(self, ctx, src2, kernel):
         if self.ctx != ctx:
             self.ctx = ctx
             self.prg = cl.Program(self.ctx, pkg_resources.resource_string(__name__, "convolve2d.cl")).build()
-        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=np.float32)
+        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=np.uint8)
         src[:,:,0:src2.shape[2]] = src2[:,:,0:src2.shape[2]]
-        kernel = np.array(kernel, dtype=np.float32)
+        kernel = np.array(kernel, dtype=np.float16)
         halflen = kernel.shape[0] / 2
         kernelf = kernel.flatten()
+        kernelf_length = np.array([kernelf.shape[0]],dtype=np.int_)
         shape = (src.shape[1], src.shape[0])
         src_buf = cl.image_from_array(self.ctx, src, 4)
         kernelf_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf)
+        kernelf_length_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf_length)
         dest_buf = cl.Image(self.ctx, cl.mem_flags.WRITE_ONLY, self.fmt, shape=shape)
         queue = cl.CommandQueue(self.ctx)
-        self.prg.BasicConvolve(queue, shape, None, src_buf, dest_buf, kernelf_buf, np.int_(kernelf.shape[0]))
-        dest = np.empty_like(src)
+        self.prg.BasicConvolve(queue, shape, None, src_buf, dest_buf, kernelf_buf, kernelf_length_buf)
+        dest = np.zeros_like(src, dtype=np.uint8)
         cl.enqueue_copy(queue, dest, dest_buf, origin=(0, 0), region=shape).wait()
         src_buf.release()
         dest_buf.release()
         kernelf_buf.release()
+        kernelf_length_buf.release()
         return dest
 convolve2d = convolve2d_OCL()
 
@@ -44,15 +47,16 @@ kernel = [
 ]
 
 src = mpimg.imread(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png"))
-#src = (src * 255).round().astype(np.uint8)
+src = (src * 255).round().astype(np.uint8)
 dest1 = convolve2d(ctx, src, kernel)
-dest1 = (dest1 * 255).round().astype(np.uint8)
 dest2 = convolve2d(ctx, src, kernel)
 
 print "==============================="
-print dest1
+print src[:,0,0]
 print "- - - - - - - - - - - - - - - -"
-print dest2
+print dest1[:,0,0]
+print "- - - - - - - - - - - - - - - -"
+print dest2[:,0,0]
 print "==============================="
 print np.array_equal(dest1,dest2)
 print
