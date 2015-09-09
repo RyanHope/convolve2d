@@ -14,5 +14,5 @@ __kernel void BasicConvolve(__read_only  image2d_t imgSrc,
           convPix += read_imagef(imgSrc, smp, (int2)(x+i,y+j)) * kernelValues[i + w*j];
        }
    }
-   write_imageui(imgConvolved, (int2)(x + (w>>1), y + (w>>1)), convert_uint4(convPix));
+   write_imagef(imgConvolved, (int2)(x + (w>>1), y + (w>>1)), convPix);
 }
