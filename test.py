@@ -15,10 +15,10 @@ class convolve2d_OCL(object):
         if self.ctx != ctx:
             self.ctx = ctx
             self.prg = cl.Program(self.ctx, pkg_resources.resource_string(__name__, "convolve2d.cl")).build()
-        src2 = np.array(src2, copy=False, dtype=np.uint8)
+        src2 = np.array(src2, dtype=np.uint8)
         src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=src2.dtype)
         src[:,:,0:src2.shape[2]] = src2[:,:,0:src2.shape[2]]
-        kernel = np.array(kernel, copy=False, dtype=np.float32)
+        kernel = np.array(kernel, dtype=np.float32)
         kernelf = kernel.flatten()
         src_buf = cl.image_from_array(self.ctx, src, 4)
         kernelf_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf)
@@ -46,8 +46,6 @@ dest1 = convolve2d(ctx, src, kernel)
 dest2 = convolve2d(ctx, src, kernel)
 
 print np.array_equal(dest1,dest2)
-print np.array_equal(src,dest1)
-print np.array_equal(src,dest2)
 print
 print src.shape,src.dtype
 print dest1.shape,dest1.dtype
