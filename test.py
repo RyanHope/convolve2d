@@ -28,7 +28,7 @@ class convolve2d_OCL(object):
         kernelf_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf)
         halflen = (kernelf.shape[0]>>1)
         queue = cl.CommandQueue(self.ctx)
-        self.prg.convolve2d_naive(queue, (src.shape[1]-halflen, src.shape[0]-halflen), None, src_buf, dest_buf, kernelf_buf, np.int_(kernelf.shape[0]))
+        self.prg.convolve2d_local(queue, (src.shape[1]-halflen, src.shape[0]-halflen), None, src_buf, dest_buf, kernelf_buf, np.int_(kernelf.shape[0]))
         cl.enqueue_copy(queue, dest, dest_buf, origin=(0, 0), region=(src.shape[1], src.shape[0])).wait()
         dest = dest[:,:,0:src2.shape[2]].copy()
         src_buf.release()
