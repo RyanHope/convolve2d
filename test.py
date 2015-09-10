@@ -21,9 +21,9 @@ class convolve2d_OCL(object):
         src[:,:,0:src2.shape[2]] = src2[:,:,0:src2.shape[2]]
         kernel = np.array(kernel, dtype=np.float32)
         kernelf = kernel.flatten()
-        src_buf = cl.image_from_array(self.ctx, src, 4)
+        src_buf = cl.image_from_array(self.ctx, src, 4, norm_int=np.issubdtype(src.dtype, np.integer))
         kernelf_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf)
-        dest_buf = cl.image_from_array(self.ctx, src.copy(), 4, mode="w")
+        dest_buf = cl.image_from_array(self.ctx, src.copy(), 4, mode="w",norm_int=np.issubdtype(src.dtype, np.integer))
         queue = cl.CommandQueue(self.ctx)
         self.prg.convolve2d_naive(queue, (src.shape[1]-(kernelf.shape[0]>>1), src.shape[0]-(kernelf.shape[0]>>1)), None, src_buf, dest_buf, kernelf_buf, np.int_(kernelf.shape[0]))
         dest = np.empty_like(src)
@@ -41,22 +41,24 @@ kernel = [
     [1/8., 1/4., 1/8.],
     [1/16., 1/8., 1/16.],
 ]
-
-print
-
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 src1 = np.asarray(Image.open(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png")))
 dest1s1 = convolve2d(ctx, src1, kernel)
 dest2s1 = convolve2d(ctx, src1, kernel)
-print np.array_equal(dest1s1,dest2s1)
-print src1.dtype,src1.shape
+print ("Equal:",np.array_equal(dest1s1,dest2s1))
+print ("Dtype:",src1.dtype)
+print ("Shape:",src1.shape)
 
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 src2 = mpimg.imread(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png"))
 dest1s2 = convolve2d(ctx, src2, kernel)
 dest2s2 = convolve2d(ctx, src2, kernel)
-print np.array_equal(dest1s2,dest2s2)
-print src2.dtype,src2.shape
+print ("Equal:",np.array_equal(dest1s2,dest2s2))
+print ("Dtype:",src2.dtype)
+print ("Shape:",src2.shape)
+
+print dest1s1
+print dest1s2
 
 fig = plt.figure(figsize=(20,10))
 a=fig.add_subplot(2,3,1)

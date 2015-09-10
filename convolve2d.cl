@@ -12,8 +12,8 @@ __kernel void convolve2d_naive(__read_only  image2d_t imgSrc,
    {
        for (int j = 0; j < w; j++)
        {
-          convPix += convert_float4(read_imageui(imgSrc, (int2)(x+i,y+j))) * kernelValues[i + w*j];
+          convPix += read_imagef(imgSrc, (int2)(x+i,y+j)) * kernelValues[i + w*j];
        }
    }
-   write_imageui(imgConvolved, (int2)(x + (w>>1), y + (w>>1)), convert_uint4(convPix));
+   write_imagef(imgConvolved, (int2)(x + (w>>1), y + (w>>1)), convPix);
 }
