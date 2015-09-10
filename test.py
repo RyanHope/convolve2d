@@ -16,13 +16,13 @@ class convolve2d_OCL(object):
             self.ctx = ctx
             self.prg = cl.Program(self.ctx, pkg_resources.resource_string(__name__, "convolve2d.cl")).build()
         src2 = np.array(src2, dtype=np.uint8)
-        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=src2.dtype)
+        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=np.uint8)
         src[:,:,0:src2.shape[2]] = src2[:,:,0:src2.shape[2]]
         kernel = np.array(kernel, dtype=np.float32)
         kernelf = kernel.flatten()
         src_buf = cl.image_from_array(self.ctx, src, 4)
         kernelf_buf = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=kernelf)
-        dest_buf = cl.image_from_array(self.ctx, src, 4, mode="w")
+        dest_buf = cl.image_from_array(self.ctx, src.copy(), 4, mode="w")
         queue = cl.CommandQueue(self.ctx)
         self.prg.convolve2d_naive(queue, (src.shape[1]-(kernelf.shape[0]>>1), src.shape[0]-(kernelf.shape[0]>>1)), None, src_buf, dest_buf, kernelf_buf, np.int_(kernelf.shape[0]))
         dest = np.empty_like(src)
