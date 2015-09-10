@@ -6,6 +6,7 @@ import pyopencl as cl
 import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 class convolve2d_OCL(object):
 
@@ -15,8 +16,8 @@ class convolve2d_OCL(object):
         if self.ctx != ctx:
             self.ctx = ctx
             self.prg = cl.Program(self.ctx, pkg_resources.resource_string(__name__, "convolve2d.cl")).build()
-        src2 = np.array(src2, dtype=np.uint8)
-        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=np.uint8)
+        src2 = np.asarray(src2)#, dtype=np.uint8)
+        src = np.zeros((src2.shape[0],src2.shape[1],4),dtype=src2.dtype)
         src[:,:,0:src2.shape[2]] = src2[:,:,0:src2.shape[2]]
         kernel = np.array(kernel, dtype=np.float32)
         kernelf = kernel.flatten()
@@ -41,24 +42,39 @@ kernel = [
     [1/16., 1/8., 1/16.],
 ]
 
-src = np.asarray(Image.open(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png")))
-dest1 = convolve2d(ctx, src, kernel)
-dest2 = convolve2d(ctx, src, kernel)
-
-print np.array_equal(dest1,dest2)
 print
-print src.shape,src.dtype
-print dest1.shape,dest1.dtype
-print dest2.shape,dest2.dtype
+
+print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+src1 = np.asarray(Image.open(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png")))
+dest1s1 = convolve2d(ctx, src1, kernel)
+dest2s1 = convolve2d(ctx, src1, kernel)
+print np.array_equal(dest1s1,dest2s1)
+print src1.dtype,src1.shape
+
+print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+src2 = mpimg.imread(pkg_resources.resource_filename(__name__, "PM5544_with_non-PAL_signals.png"))
+dest1s2 = convolve2d(ctx, src2, kernel)
+dest2s2 = convolve2d(ctx, src2, kernel)
+print np.array_equal(dest1s2,dest2s2)
+print src2.dtype,src2.shape
 
 fig = plt.figure(figsize=(20,10))
-a=fig.add_subplot(1,3,1)
-plt.imshow(src)
-a.set_title("orig")
-a=fig.add_subplot(1,3,2)
-plt.imshow(dest1)
-a.set_title("blurred 1")
-a=fig.add_subplot(1,3,3)
-plt.imshow(dest2)
-a.set_title("blurred 2")
+a=fig.add_subplot(2,3,1)
+plt.imshow(src1)
+a.set_title("src1")
+a=fig.add_subplot(2,3,2)
+plt.imshow(dest1s1)
+a.set_title("src1-blurred1")
+a=fig.add_subplot(2,3,3)
+plt.imshow(dest2s1)
+a.set_title("src1-blurred2")
+a=fig.add_subplot(2,3,4)
+plt.imshow(src1)
+a.set_title("src2")
+a=fig.add_subplot(2,3,5)
+plt.imshow(dest1s2)
+a.set_title("src2-blurred1")
+a=fig.add_subplot(2,3,6)
+plt.imshow(dest2s2)
+a.set_title("src2-blurred2")
 plt.show()
